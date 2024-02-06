@@ -3,7 +3,7 @@ from src.image_utils import process_image_to_info
 from werkzeug.utils import secure_filename
 import os
 from flask_cors import CORS
-
+from src.call_API import getImageLabels
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes and origins
@@ -21,15 +21,9 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/read_ISBN', methods=['POST'])
-def read_ISBN():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
+@app.route('/readISBN', methods=['POST'])
+def readISBN():
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    if not allowed_file(file.filename):
-        return jsonify({"error": "File type not allowed"}), 400
     if file:
         filename = secure_filename(file.filename)
         filepath = os.path.join('/tmp', filename)
@@ -37,6 +31,14 @@ def read_ISBN():
         # Use your script's functionality
         isbn = process_image_to_info(filepath)
         return jsonify(isbn)
+
+
+@app.route('/readImage', methods=['POST'])
+def readImage():
+    uri = request.text['uri']
+    if uri:
+        labels = getImageLabels(uri)
+        # use labels to make a suggestion
 
 
 if __name__ == '__main__':

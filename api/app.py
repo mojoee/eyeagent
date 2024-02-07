@@ -24,13 +24,14 @@ def allowed_file(filename):
 
 @app.route('/storeImage', methods=['POST'])
 def storeImage():
-    file = request.files['file']
+    file = request.form['file']
+    supabasePath = request.form['supabasePath']
     content = file.read()
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         filepath = os.path.join('images', filename)
         print(filepath)
-        uploadImage(content, bucket="images", path_on_supastorage="test/1.jpg", content_type="image/jpeg")
+        uploadImage(content, bucket="images", path_on_supastorage=supabasePath, content_type="image/jpeg")
         return {"message": "Image uploaded successfully!"}
     else:
         return None

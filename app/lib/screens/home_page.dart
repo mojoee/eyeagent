@@ -6,6 +6,8 @@ import 'package:eyeagent/models/profile.dart';
 import 'package:eyeagent/utils/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 import 'package:camera/camera.dart';
 
@@ -170,6 +172,42 @@ class DisplayPictureScreen extends StatelessWidget {
 
   const DisplayPictureScreen({super.key, required this.imagePath});
 
+  Future<void> uploadImage() async {
+    final myUserId = supabase.auth.currentUser!.id;
+    var uuid = Uuid();
+    var uniqueFileName =
+        uuid.v4() + '.jpg'; // Generates a version 4 (random) UUID
+
+    // Replace 'http://localhost:your_port/upload' with your server URL
+    var url = Uri.parse('http://10.0.2.2:5000/storeImage');
+
+    // Create a multipart request
+    var request = http.MultipartRequest('POST', url);
+
+    // Attach the image file to the request
+    var file = File(
+        imagePath); // Replace 'path_to_your_image' with the actual path of the image file
+    var stream = http.ByteStream(file.openRead());
+    var length = await file.length();
+    var multipartFile = http.MultipartFile('file', stream, length,
+        filename:
+            uniqueFileName); // Change 'example.jpg' to the desired filename
+
+    print(multipartFile);
+    request.files.add(multipartFile);
+    request.fields['uuid'] = myUserId;
+
+    // Send the request
+    var response = await request.send();
+
+    // Check the response status
+    if (response.statusCode == 200) {
+      print('Image uploaded successfully');
+    } else {
+      print('Failed to upload image');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -181,7 +219,7 @@ class DisplayPictureScreen extends StatelessWidget {
           Container(child: Image.file(File(imagePath))),
           ElevatedButton(
             onPressed: () {
-              print('Retake Picture');
+              uploadImage();
             },
             child: const Text('Upload'),
           ),

@@ -27,8 +27,8 @@ class DatabaseHandler():
         print("Image uploaded")
 
 
-    def createDatabaseEntryImage(self, user_id):
-        data, count = self.client.table("Images").insert({"user_id": user_id}).execute()
+    def createDatabaseEntryImage(self, user_id,file_name):
+        data, count = self.client.table("Images").insert({"user_id": user_id,"file_name": file_name}).execute()
         return data, count
     
 

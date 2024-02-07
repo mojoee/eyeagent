@@ -30,7 +30,7 @@ def storeImage():
     # supabasePath = request.form['supabasePath']
     # make the database entry
     content = file.read()
-    data, count = dbHandler.createDatabaseEntryImage(uuid)
+    data, count = dbHandler.createDatabaseEntryImage(uuid, file.filename)
     # create folder for user if not exists already
     # dbHandler.updateImagePath()
     filename = dbHandler.getFileName(data[1][0]["id"])

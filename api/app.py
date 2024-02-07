@@ -25,19 +25,17 @@ def allowed_file(filename):
 
 @app.route('/storeImage', methods=['POST'])
 def storeImage():
-    file = request.form['file']
+    file = request.files['file']
     uuid = request.form['uuid']
     # supabasePath = request.form['supabasePath']
     # make the database entry
     content = file.read()
-    dbHandler.createDatabaseEntryImage(uuid)
+    data, count = dbHandler.createDatabaseEntryImage(uuid)
     # create folder for user if not exists already
-
+    # dbHandler.updateImagePath()
+    filename = dbHandler.getFileName(data[1][0]["id"])
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join('images', filename)
-        print(filepath)
-        dbHandler.uploadImage(content, bucket="images", path_on_supastorage=supabasePath, content_type="image/jpeg")
+        dbHandler.uploadImage(content, bucket="images", path_on_supastorage=filename, content_type="image/jpeg")
         return {"message": "Image uploaded successfully!"}
     else:
         return None

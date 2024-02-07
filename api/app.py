@@ -4,13 +4,14 @@ from werkzeug.utils import secure_filename
 import os
 from flask_cors import CORS
 from src.call_API import getImageLabels
-from src.utils import uploadImage
+from src.utils import DatabaseHandler
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes and origins
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
 app.secret_key = os.environ.get('SECRET_KEY', 'optional_default_secret_key')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+dbHandler = DatabaseHandler()
 
 @app.route('/')
 def home():
@@ -25,13 +26,18 @@ def allowed_file(filename):
 @app.route('/storeImage', methods=['POST'])
 def storeImage():
     file = request.form['file']
-    supabasePath = request.form['supabasePath']
+    uuid = request.form['uuid']
+    # supabasePath = request.form['supabasePath']
+    # make the database entry
     content = file.read()
+    dbHandler.createDatabaseEntryImage(uuid)
+    # create folder for user if not exists already
+
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         filepath = os.path.join('images', filename)
         print(filepath)
-        uploadImage(content, bucket="images", path_on_supastorage=supabasePath, content_type="image/jpeg")
+        dbHandler.uploadImage(content, bucket="images", path_on_supastorage=supabasePath, content_type="image/jpeg")
         return {"message": "Image uploaded successfully!"}
     else:
         return None

@@ -36,7 +36,7 @@ def storeImage():
     filename = dbHandler.getFileName(data[1][0]["id"])
     if file and allowed_file(file.filename):
         dbHandler.uploadImage(content, bucket="images", path_on_supastorage=filename, content_type="image/jpeg")
-        return {"message": "Image uploaded successfully!"}
+        return {"message": "Image uploaded successfully!", "id": data[1][0]["id"] }
     else:
         return None
 

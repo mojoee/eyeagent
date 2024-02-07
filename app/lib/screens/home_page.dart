@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -166,14 +167,36 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   }
 }
 
-// A widget that displays the picture taken by the user.
-class DisplayPictureScreen extends StatelessWidget {
+class DisplayPictureScreen extends StatefulWidget {
   final String imagePath;
 
-  const DisplayPictureScreen({super.key, required this.imagePath});
+  const DisplayPictureScreen({Key? key, required this.imagePath})
+      : super(key: key);
+
+  @override
+  _DisplayPictureScreenState createState() => _DisplayPictureScreenState();
+}
+
+// A widget that displays the picture taken by the user.
+class _DisplayPictureScreenState extends State<DisplayPictureScreen> {
+  final StreamController<String> _streamController =
+      StreamController<String>(); // Stream controller
+
+  @override
+  void dispose() {
+    _streamController
+        .close(); // Close the stream controller when disposing the widget
+    super.dispose();
+  }
+
+  void handleInserts(PostgresChangePayload event) {
+    print(event);
+    _streamController.add(event.newRecord['results'].toString());
+  }
 
   Future<void> uploadImage() async {
     final myUserId = supabase.auth.currentUser!.id;
+
     var uuid = Uuid();
     var uniqueFileName =
         uuid.v4() + '.jpg'; // Generates a version 4 (random) UUID
@@ -185,15 +208,14 @@ class DisplayPictureScreen extends StatelessWidget {
     var request = http.MultipartRequest('POST', url);
 
     // Attach the image file to the request
-    var file = File(
-        imagePath); // Replace 'path_to_your_image' with the actual path of the image file
+    var file = File(widget
+        .imagePath); // Replace 'path_to_your_image' with the actual path of the image file
     var stream = http.ByteStream(file.openRead());
     var length = await file.length();
     var multipartFile = http.MultipartFile('file', stream, length,
         filename:
             uniqueFileName); // Change 'example.jpg' to the desired filename
 
-    print(multipartFile);
     request.files.add(multipartFile);
     request.fields['uuid'] = myUserId;
 
@@ -203,6 +225,23 @@ class DisplayPictureScreen extends StatelessWidget {
     // Check the response status
     if (response.statusCode == 200) {
       print('Image uploaded successfully');
+      var responseData = await response.stream.bytesToString();
+      var jsonData = json.decode(responseData);
+      var id = jsonData['id'];
+
+      supabase
+          .channel('Images')
+          .onPostgresChanges(
+              event: PostgresChangeEvent.update,
+              schema: 'public',
+              table: 'Images',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'id',
+                value: id,
+              ),
+              callback: handleInserts)
+          .subscribe();
     } else {
       print('Failed to upload image');
     }
@@ -216,12 +255,42 @@ class DisplayPictureScreen extends StatelessWidget {
       // constructor with the given path to display the image.
       body: Column(
         children: [
-          Container(child: Image.file(File(imagePath))),
+          Container(child: Image.file(File(widget.imagePath))),
           ElevatedButton(
             onPressed: () {
               uploadImage();
             },
             child: const Text('Upload'),
+          ),
+          Expanded(
+            child: StreamBuilder<String>(
+              stream: _streamController.stream,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  // Parse the JSON string
+                  Map<String, dynamic> data = jsonDecode(snapshot.data!);
+
+                  // Create a list to store UI elements
+                  List<Widget> widgets = [];
+
+                  // Loop through the JSON data and create UI elements
+                  data.forEach((key, value) {
+                    widgets.add(
+                      ListTile(
+                        title: Text(key),
+                        subtitle: Text(value.toString()),
+                        // Customize the ListTile UI according to your needs
+                      ),
+                    );
+                  });
+                  return ListView(
+                    children: widgets,
+                  );
+                } else {
+                  return CircularProgressIndicator();
+                }
+              },
+            ),
           ),
         ],
       ),

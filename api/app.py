@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 import os
 from flask_cors import CORS
 from src.call_API import getImageLabels
+from src.utils import uploadImage
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes and origins
@@ -19,6 +20,20 @@ def home():
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/storeImage', methods=['POST'])
+def storeImage():
+    file = request.files['file']
+    content = file.read()
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join('images', filename)
+        print(filepath)
+        uploadImage(content, bucket="images", path_on_supastorage="test/1.jpg", content_type="image/jpeg")
+        return {"message": "Image uploaded successfully!"}
+    else:
+        return None
 
 
 @app.route('/readISBN', methods=['POST'])
